@@ -90,11 +90,11 @@ template MastermindVariation() {
 
     // Verify that the hash of the private solution matches pubSolnHash
     component poseidon = Poseidon(5);
-    poseidon.inputs[0] <== privSalt;
-    poseidon.inputs[1] <== privSolnA;
-    poseidon.inputs[2] <== privSolnB;
-    poseidon.inputs[3] <== privSolnC;
-    poseidon.inputs[4] <== privSolnD;
+    poseidon.inputs[4] <== privSalt;
+    poseidon.inputs[0] <== privSolnA;
+    poseidon.inputs[1] <== privSolnB;
+    poseidon.inputs[2] <== privSolnC;
+    poseidon.inputs[3] <== privSolnD;
 
     solnHashOut <== poseidon.out;
     pubSolnHash === solnHashOut;

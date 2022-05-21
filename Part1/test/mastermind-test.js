@@ -2,12 +2,7 @@
 const chai = require("chai");
 const path = require("path");
 
-const snarkjs = require("snarkjs");
-const crypto = require("crypto");
-
-
 const wasm_tester = require("circom_tester").wasm;
-
 
 const F1Field = require("ffjavascript").F1Field;
 const Scalar = require("ffjavascript").Scalar;
@@ -19,16 +14,15 @@ const assert = chai.assert;
 const { buildPoseidon } = require('circomlibjs');
 
 
-describe("System of equations test", function () {
+describe("MastermindVariation test", function () {
     this.timeout(100000000);
 
-    it("Bonus question", async () => {
-        const circuit = await wasm_tester("/Users/kimurayuki/blockchain/zkuniversity/week3_2/Part1/contracts/circuits/MastermindVariation.circom");
+    it("MastermindVariation test", async () => {
+        const current = process.cwd()
+        const circuit = await wasm_tester(current + "/contracts/circuits/MastermindVariation.circom");
         await circuit.loadConstraints();
 
         const poseidon = await buildPoseidon();
-
-        
 
         const testCase = {
             "guess": [4, 3, 2, 1],
@@ -37,20 +31,16 @@ describe("System of equations test", function () {
             "blackPegs": 4,
         }
 
-        const soln = genSolnInput(testCase.soln)
-        const saltedSoln = soln.add(genSalt())
-        console.log(saltedSoln.toString())
+        const privSalt = 1234;
+        testCase.soln.push(privSalt);
 
         const poseidonHash = poseidon(testCase.soln);
         const hash = poseidon.F.toObject(poseidonHash);
-        console.log(poseidonHash)
         const INPUT = {
             pubNumBlacks: testCase.blackPegs.toString(),
             pubNumWhites: testCase.whitePegs.toString(),
-
             pubSolnHash: hash,
-            privSalt: saltedSoln.toString(),
-
+            privSalt: privSalt,
             pubGuessA: testCase.guess[0],
             pubGuessB: testCase.guess[1],
             pubGuessC: testCase.guess[2],
@@ -61,36 +51,9 @@ describe("System of equations test", function () {
             privSolnD: testCase.soln[3],
         }
 
-        const witness = await circuit.calculateWitness(INPUT);
-
-        console.log(witness);
+        const witness = await circuit.calculateWitness(INPUT, true);
 
         assert(Fr.eq(Fr.e(witness[0]),Fr.e(1)));
-        assert(Fr.eq(Fr.e(witness[1]),Fr.e(1)));
+        assert(Fr.eq(Fr.e(witness[3]),Fr.e(3)));
     });
 });
-
-const genSolnInput = (soln) => {
-    let m = bigInt(0)
-
-    for (let i=soln.length-1; i >= 0; i--) {
-        m = m.add(bigInt(soln[i] * (4 ** i)))
-    }
-
-    return m
-}
-
-const genSalt = () => {
-    // the maximum integer supported by Solidity is (2 ^ 256), which is 32
-    // bytes long
-    const buf = crypto.randomBytes(30)
-    const salt = bigInt.leBuff2int(buf).sub(bigInt(340))
-
-    // 4 * (4^3) + 4 * (4^2) + 4 * (4^1) + 4 * (4^0) = 340
-    // Only return values greater than the largest possible solution
-    if (salt.lt(340)) {
-        return genSalt()
-    }
-
-    return salt
-}
